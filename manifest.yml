@@ -4,5 +4,5 @@ applications:
   buildpack: python_buildpack
   command: ./cf_run.sh
   env:
-    WORKER_PROCESSES: 16
+    WORKER_PROCESSES: 8
   memory: 4GB
