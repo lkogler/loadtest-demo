@@ -25,7 +25,7 @@ def slow():
 
 @application.route('/cpu')
 def cpu():
-    for i in range(3):
-        for x in range(100000000):
+    for i in range(3000):
+        for x in range(100000):
             x * x
     return 'OK'
