@@ -1,8 +1,15 @@
 import random
 import time
-from flask import Flask
+from flask import Flask, request
 
 application = Flask(__name__)
+
+
+@application.route('/upload', methods=['POST'])
+def upload():
+    if 'big_file' in request.files:
+        return 'OK'
+    return 'Not OK'
 
 
 @application.route('/fast')
