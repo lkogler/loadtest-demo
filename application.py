@@ -12,6 +12,14 @@ def upload():
     return 'Not OK'
 
 
+@application.route('/upload_and_save_tempfile', methods=['POST'])
+def upload_and_save_tempfile():
+    if 'big_file' in request.files:
+        file = request.files['big_file']
+        return 'OK'
+    return 'Not OK'
+
+
 @application.route('/fast')
 def fast():
     return 'OK'
