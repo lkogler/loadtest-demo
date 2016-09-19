@@ -2,7 +2,7 @@ import random
 import time
 from tempfile import TemporaryFile
 
-from flask import Flask, request
+from flask import Flask, request, send_file
 from uuid import uuid4
 import os
 
@@ -49,6 +49,14 @@ def save_file():
         os.remove(unique_filename)
 
     return 'OK'
+
+
+@application.route('/download')
+def download():
+    return send_file(VIDEO_FILE_PATH,
+                     attachment_filename='video.mov',
+                     as_attachment=True,
+                     mimetype='application/quicktime')
 
 
 @application.route('/save_tempfile')
