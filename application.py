@@ -6,7 +6,6 @@ from flask import Flask, request, send_file
 from uuid import uuid4
 import os
 import boto3
-import botocore
 from io import BytesIO
 
 application = Flask(__name__)
@@ -118,11 +117,4 @@ def s3_download(s3_filename):
     s3 = boto3.client('s3')
     file_pointer = BytesIO()
     s3.download_fileobj(S3_BUCKET_NAME, s3_filename, file_pointer)
-
-    # bucket = s3.Bucket(S3_BUCKET_NAME)
-    # s3.meta.client.head_bucket(Bucket='mybucket')
-
-    #bucket.get_key(s3_filename).get_contents_to_file(file_pointer)
-    #file_pointer.seek(0)
-
-    return file_pointer
+    file_pointer.close()
