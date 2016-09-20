@@ -1,12 +1,15 @@
 import random
 import time
+from io import BytesIO
 from tempfile import TemporaryFile
 
+import boto3
+import requests
 from flask import Flask, request, send_file
 from uuid import uuid4
 import os
-import boto3
-from io import BytesIO
+
+from amazon_authentication import AmazonAuthentication
 
 application = Flask(__name__)
 
@@ -15,6 +18,8 @@ VIDEO_FILE_PATH = os.path.join(PROJECT_ROOT, "please_dont_ever_share_this.mov")
 FILE_SEGMENT_SIZE = 5000 * 1024 * 1024
 S3_BUCKET_NAME = os.environ.get('S3_BUCKET_NAME', None)
 S3_DOWNLOAD_EXAMPLE_FILENAME = os.environ.get('S3_DOWNLOAD_EXAMPLE_FILENAME', None)
+AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID', None)
+AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY', None)
 
 
 @application.route('/upload', methods=['POST'])
@@ -91,30 +96,41 @@ def cpu():
     return 'OK'
 
 
-@application.route('/s3_upload')
-def my_s3_upload():
-    s3_upload(VIDEO_FILE_PATH)
+@application.route('/s3_upload_http')
+def s3_upload_http():
+    with open(VIDEO_FILE_PATH, 'rb') as file_pointer:
+        unique_identifier = str(uuid4())
+        s3_url = "https://s3.amazonaws.com/{}/{}".format(S3_BUCKET_NAME, unique_identifier)
+        auth = AmazonAuthentication(access_key=AWS_ACCESS_KEY_ID, secret_key=AWS_SECRET_ACCESS_KEY)
+        requests.put(s3_url, data=file_pointer, auth=auth)
 
     return 'OK'
 
 
-@application.route('/s3_download')
-def my_s3_download():
-    s3_download(S3_DOWNLOAD_EXAMPLE_FILENAME)
-
+@application.route('/s3_download_http')
+def s3_download_http():
+    s3_url = "https://s3.amazonaws.com/{}/{}".format(S3_BUCKET_NAME, S3_DOWNLOAD_EXAMPLE_FILENAME)
+    auth = AmazonAuthentication(access_key=AWS_ACCESS_KEY_ID, secret_key=AWS_SECRET_ACCESS_KEY)
+    requests.get(s3_url, auth=auth)
     return 'OK'
 
 
-def s3_upload(file_path):
-    with open(file_path, 'rb') as file_pointer:
+@application.route('/s3_upload_boto')
+def s3_upload_boto():
+    with open(VIDEO_FILE_PATH, 'rb') as file_pointer:
         s3_connection = boto3.resource('s3')
 
         unique_identifier = str(uuid4())
         s3_connection.Object(S3_BUCKET_NAME, unique_identifier).put(Body=file_pointer)
 
+    return 'OK'
 
-def s3_download(s3_filename):
+
+@application.route('/s3_download_boto')
+def s3_download_boto():
     s3 = boto3.client('s3')
     file_pointer = BytesIO()
-    s3.download_fileobj(S3_BUCKET_NAME, s3_filename, file_pointer)
+    s3.download_fileobj(S3_BUCKET_NAME, S3_DOWNLOAD_EXAMPLE_FILENAME, file_pointer)
     file_pointer.close()
+
+    return 'OK'
