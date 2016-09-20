@@ -5,9 +5,9 @@ from tempfile import TemporaryFile
 from flask import Flask, request, send_file
 from uuid import uuid4
 import os
-import boto
+import boto3
+import botocore
 from io import BytesIO
-import math
 
 application = Flask(__name__)
 
@@ -16,8 +16,6 @@ VIDEO_FILE_PATH = os.path.join(PROJECT_ROOT, "please_dont_ever_share_this.mov")
 FILE_SEGMENT_SIZE = 5000 * 1024 * 1024
 S3_BUCKET_NAME = os.environ.get('S3_BUCKET_NAME', None)
 S3_DOWNLOAD_EXAMPLE_FILENAME = os.environ.get('S3_DOWNLOAD_EXAMPLE_FILENAME', None)
-AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID', None)
-AWS_SECRET_KEY = os.environ.get('AWS_SECRET_KEY', None)
 
 
 @application.route('/upload', methods=['POST'])
@@ -110,37 +108,21 @@ def my_s3_download():
 
 def s3_upload(file_path):
     with open(file_path, 'rb') as file_pointer:
-        s3_connection = boto.connect_s3(aws_access_key_id=AWS_ACCESS_KEY_ID, aws_secret_access_key=AWS_SECRET_KEY)
-        bucket = s3_connection.get_bucket(S3_BUCKET_NAME)
+        s3_connection = boto3.resource('s3')
 
-        multipart_upload = bucket.initiate_multipart_upload(str(uuid4()))
-
-        bytes_io_object = BytesIO(file_pointer.read())
-        file_size = bytes_io_object.getbuffer().nbytes
-
-        chunks_count = int(math.ceil(file_size / float(FILE_SEGMENT_SIZE)))
-
-        for i in range(chunks_count):
-            byte_offset = i * FILE_SEGMENT_SIZE
-            bytes_to_go = file_size - byte_offset
-            byte_count = min([FILE_SEGMENT_SIZE, bytes_to_go])
-            file_pointer.seek(byte_offset)
-            multipart_upload.upload_part_from_file(fp=file_pointer, part_num=(i + 1), size=byte_count)
-            file_pointer.seek(0)
-
-        bytes_io_object.close()
-        if len(multipart_upload.get_all_parts()) == chunks_count:
-            multipart_upload.complete_upload()
-        else:
-            multipart_upload.cancel_upload()
-            raise Exception('Failed to upload file \'{}\' to S3'.format(file_path))
+        unique_identifier = str(uuid4())
+        s3_connection.Object(S3_BUCKET_NAME, unique_identifier).put(Body=file_pointer)
 
 
 def s3_download(s3_filename):
+    s3 = boto3.client('s3')
     file_pointer = BytesIO()
-    s3_connection = boto.connect_s3(aws_access_key_id=AWS_ACCESS_KEY_ID, aws_secret_access_key=AWS_SECRET_KEY)
-    s3_connection.get_bucket(S3_BUCKET_NAME).get_key(
-        s3_filename).get_contents_to_file(file_pointer)
-    file_pointer.seek(0)
+    s3.download_fileobj(S3_BUCKET_NAME, s3_filename, file_pointer)
+
+    # bucket = s3.Bucket(S3_BUCKET_NAME)
+    # s3.meta.client.head_bucket(Bucket='mybucket')
+
+    #bucket.get_key(s3_filename).get_contents_to_file(file_pointer)
+    #file_pointer.seek(0)
 
     return file_pointer
