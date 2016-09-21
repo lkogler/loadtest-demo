@@ -1,3 +1,6 @@
+amqp==1.4.9
+anyjson==0.3.3
+boto==2.42.0
 boto3==1.4.0
 botocore==1.4.55
 click==6.6
@@ -7,6 +10,7 @@ gunicorn==19.6.0
 itsdangerous==0.24
 Jinja2==2.8
 jmespath==0.9.0
+kombu==3.0.35
 MarkupSafe==0.23
 python-dateutil==2.5.3
 requests==2.11.1

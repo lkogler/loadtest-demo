@@ -6,3 +6,9 @@ applications:
   env:
     GUNICORN_WORKER_PROCESSES: 8
   memory: 4GB
+- name: loadtest-demo-worker
+  buildpack: python_buildpack
+  command: python s3_worker.py
+  instances: 40
+  no-route: true
+  memory: 64MB
