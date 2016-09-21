@@ -20,8 +20,8 @@ class AmazonAuthentication(AuthBase):
         'notification', 'cors'
     ]
 
-    def __init__(self, access_key, secret_key):
-        self.service_base_url = 's3.amazonaws.com'
+    def __init__(self, access_key, secret_key, service_base_url):
+        self.service_base_url = service_base_url
         self.access_key = access_key
         self.secret_key = secret_key
 

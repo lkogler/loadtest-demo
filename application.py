@@ -20,6 +20,8 @@ S3_BUCKET_NAME = os.environ.get('S3_BUCKET_NAME', None)
 S3_DOWNLOAD_EXAMPLE_FILENAME = os.environ.get('S3_DOWNLOAD_EXAMPLE_FILENAME', None)
 AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID', None)
 AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY', None)
+S34ME_ACCESS_KEY_ID = os.environ.get('S34ME_ACCESS_KEY_ID', None)
+S34ME_SECRET_ACCESS_KEY = os.environ.get('S34ME_SECRET_ACCESS_KEY', None)
 
 
 @application.route('/upload', methods=['POST'])
@@ -99,19 +101,39 @@ def cpu():
 @application.route('/s3_upload_http')
 def s3_upload_http():
     with open(VIDEO_FILE_PATH, 'rb') as file_pointer:
-        unique_identifier = str(uuid4())
-        s3_url = "https://s3.amazonaws.com/{}/{}".format(S3_BUCKET_NAME, unique_identifier)
-        auth = AmazonAuthentication(access_key=AWS_ACCESS_KEY_ID, secret_key=AWS_SECRET_ACCESS_KEY)
-        requests.put(s3_url, data=file_pointer, auth=auth)
+        _upload_http(file_pointer,
+                     service_base_url='s3.amazonaws.com',
+                     access_key=AWS_ACCESS_KEY_ID,
+                     secret_key=AWS_SECRET_ACCESS_KEY)
 
-    return 'OK'
+        return 'OK'
 
 
 @application.route('/s3_download_http')
 def s3_download_http():
-    s3_url = "https://s3.amazonaws.com/{}/{}".format(S3_BUCKET_NAME, S3_DOWNLOAD_EXAMPLE_FILENAME)
-    auth = AmazonAuthentication(access_key=AWS_ACCESS_KEY_ID, secret_key=AWS_SECRET_ACCESS_KEY)
-    requests.get(s3_url, auth=auth)
+    _download_http(service_base_url='s3.amazonaws.com',
+                   access_key=AWS_ACCESS_KEY_ID,
+                   secret_key=AWS_SECRET_ACCESS_KEY)
+    return 'OK'
+
+
+@application.route('/s34me_upload_http')
+def s34me_upload_http():
+    with open(VIDEO_FILE_PATH, 'rb') as file_pointer:
+        _upload_http(file_pointer,
+                     service_base_url='rest.s3for.me',
+                     access_key=S34ME_ACCESS_KEY_ID,
+                     secret_key=S34ME_SECRET_ACCESS_KEY)
+
+    return 'OK'
+
+
+@application.route('/s34me_download_http')
+def s34me_download_http():
+    _download_http(service_base_url='rest.s3for.me',
+                   access_key=S34ME_ACCESS_KEY_ID,
+                   secret_key=S34ME_SECRET_ACCESS_KEY)
+
     return 'OK'
 
 
@@ -134,3 +156,20 @@ def s3_download_boto():
     file_pointer.close()
 
     return 'OK'
+
+
+def _upload_http(file_pointer, service_base_url, access_key, secret_key):
+    unique_identifier = str(uuid4())
+    s3_url = "https://{}/{}/{}".format(service_base_url, S3_BUCKET_NAME, unique_identifier)
+    auth = AmazonAuthentication(access_key=access_key,
+                                secret_key=secret_key,
+                                service_base_url=service_base_url)
+    requests.put(s3_url, data=file_pointer, auth=auth)
+
+
+def _download_http(service_base_url, access_key, secret_key):
+    s3_url = "https://{}/{}/{}".format(service_base_url, S3_BUCKET_NAME, S3_DOWNLOAD_EXAMPLE_FILENAME)
+    auth = AmazonAuthentication(access_key=access_key,
+                                secret_key=secret_key,
+                                service_base_url=service_base_url)
+    requests.get(s3_url, auth=auth)
