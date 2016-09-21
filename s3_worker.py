@@ -2,6 +2,7 @@ from queue import Empty
 
 import time
 from kombu import BrokerConnection
+from kombu.exceptions import MessageStateError
 from kombu.simple import SimpleQueue
 
 from s3_requests import boto_download
@@ -44,14 +45,17 @@ def listen():
     while 1:
         try:
             request = queue.get(block=True, timeout=1)
+            request.ack()
+
             decoded_request = request.decode()
             message_index = decoded_request["i"]
 
             download_time = timing(boto_download)
 
-            request.ack()
             print("{} in {}".format(message_index, download_time))
         except Empty:
+            pass
+        except MessageStateError:
             pass
 
 
