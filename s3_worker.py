@@ -50,7 +50,7 @@ def listen():
             download_time = timing(boto_download)
 
             request.ack()
-            print("Did s3 transaction for message '{}' in {}!".format(message_index, download_time))
+            print("{} in {}".format(message_index, download_time))
         except Empty:
             pass
 

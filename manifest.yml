@@ -9,6 +9,7 @@ applications:
 - name: loadtest-demo-worker
   buildpack: python_buildpack
   command: python s3_worker.py
-  instances: 40
+  instances: 1
   no-route: true
+  health-check-type: none
   memory: 64MB
