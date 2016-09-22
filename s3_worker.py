@@ -54,8 +54,11 @@ def traceroute(domain) -> Tuple[float, float]:
     hop_strings = output_byte_string.strip().split('\n')[1:]
     hop_averages = ()
     for h in hop_strings:
-        hop_values = [float(s.strip()) for s in h.split(')')[-1].split('ms') if s]
-        hop_average = (sum(hop_values) / len(hop_values)) / 1000.0
+        try:
+            hop_values = [float(s.strip()) for s in h.split(')')[-1].split('ms') if s]
+            hop_average = (sum(hop_values) / len(hop_values)) / 1000.0
+        except ValueError:
+            hop_average = "TIMEOUT"
         hop_averages += (hop_average,)
 
     return hop_averages
