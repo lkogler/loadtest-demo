@@ -48,10 +48,10 @@ def publish(message_count):
 
 
 def traceroute(domain) -> Tuple[float, float]:
-    output_byte_string = subprocess.check_output('traceroute {} | head -n 2'.format(domain), shell=True,
+    output_byte_string = subprocess.check_output('traceroute {} | head -n 3'.format(domain), shell=True,
                                                  stderr=DEV_NULL)
     output_byte_string = output_byte_string.decode("utf-8")
-    hop_strings = output_byte_string.strip().split('\n')
+    hop_strings = output_byte_string.strip().split('\n')[1:]
     hop_averages = ()
     for h in hop_strings:
         hop_values = [float(s.strip()) for s in h.split(')')[-1].split('ms') if s]
