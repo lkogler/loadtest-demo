@@ -1,11 +1,17 @@
+import os
 from queue import Empty
 
 import time
+from typing import Tuple
+
+import subprocess
 from kombu import BrokerConnection
 from kombu.exceptions import MessageStateError
 from kombu.simple import SimpleQueue
 
 from s3_requests import boto_download
+
+DEV_NULL = open(os.devnull, 'w')
 
 
 def timing(f):
@@ -31,6 +37,7 @@ def get_queue() -> SimpleQueue:
                                  interval_step=1,
                                  callback=lambda exception, interval: print(exception))
     _queue = connection.SimpleQueue('loadtest-demo')
+    _queue.consumer.qos(prefetch_count=1)
     return _queue
 
 
@@ -38,6 +45,20 @@ def publish(message_count):
     for message_index in range(message_count):
         queue = get_queue()
         queue.put({"i": message_index}, serializer='json')
+
+
+def traceroute(domain) -> Tuple[float, float]:
+    output_byte_string = subprocess.check_output('traceroute {} | head -n 2'.format(domain), shell=True,
+                                                 stderr=DEV_NULL)
+    output_byte_string = output_byte_string.decode("utf-8")
+    hop_strings = output_byte_string.strip().split('\n')
+    hop_averages = ()
+    for h in hop_strings:
+        hop_values = [float(s.strip()) for s in h.split(')')[-1].split('ms') if s]
+        hop_average = (sum(hop_values) / len(hop_values)) / 1000.0
+        hop_averages += (hop_average,)
+
+    return hop_averages
 
 
 def listen():
@@ -51,8 +72,12 @@ def listen():
             message_index = decoded_request["i"]
 
             download_time = timing(boto_download)
-
-            print("{} in {}".format(message_index, download_time))
+            nat_hop_1, nat_hop_2 = traceroute('s3.amazonaws.com')
+            print(",QUEUE NUMBER,{},DOWNLOAD TIME,{},NAT_HOP_1,{},NAT_HOP_2,{}".format(
+                message_index,
+                download_time,
+                nat_hop_1,
+                nat_hop_2))
         except Empty:
             pass
         except MessageStateError:
