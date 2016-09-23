@@ -1,17 +1,13 @@
-import os
+from functools import partial
 from queue import Empty
 
 import time
-from typing import Tuple
-
-import subprocess
 from kombu import BrokerConnection
 from kombu.exceptions import MessageStateError
 from kombu.simple import SimpleQueue
 
-from s3_requests import boto_download
-
-DEV_NULL = open(os.devnull, 'w')
+from loadtest_env import S34ME_ACCESS_KEY_ID, S34ME_SECRET_ACCESS_KEY
+from s3_requests import http_download
 
 
 def timing(f):
@@ -47,23 +43,6 @@ def publish(message_count):
         queue.put({"i": message_index}, serializer='json')
 
 
-def traceroute(domain) -> Tuple[float, float]:
-    output_byte_string = subprocess.check_output('traceroute {} | head -n 3'.format(domain), shell=True,
-                                                 stderr=DEV_NULL)
-    output_byte_string = output_byte_string.decode("utf-8")
-    hop_strings = output_byte_string.strip().split('\n')[1:]
-    hop_averages = ()
-    for h in hop_strings:
-        try:
-            hop_values = [float(s.strip()) for s in h.split(')')[-1].split('ms') if s]
-            hop_average = (sum(hop_values) / len(hop_values)) / 1000.0
-        except ValueError:
-            hop_average = "TIMEOUT"
-        hop_averages += (hop_average,)
-
-    return hop_averages
-
-
 def listen():
     queue = get_queue()
     while 1:
@@ -73,14 +52,12 @@ def listen():
 
             decoded_request = request.decode()
             message_index = decoded_request["i"]
+            download = partial(http_download, **{'service_base_url': 'rest.s3for.me',
+                                                 'access_key': S34ME_ACCESS_KEY_ID,
+                                                 'secret_key': S34ME_SECRET_ACCESS_KEY})
 
-            download_time = timing(boto_download)
-            nat_hop_1, nat_hop_2 = traceroute('s3.amazonaws.com')
-            print(",QUEUE NUMBER,{},DOWNLOAD TIME,{},NAT_HOP_1,{},NAT_HOP_2,{}".format(
-                message_index,
-                download_time,
-                nat_hop_1,
-                nat_hop_2))
+            download_time = timing(download)
+            print(",QUEUE NUMBER,{},DOWNLOAD TIME,{}".format(message_index, download_time))
         except Empty:
             pass
         except MessageStateError:
