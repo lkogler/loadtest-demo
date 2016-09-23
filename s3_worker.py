@@ -1,13 +1,11 @@
-from functools import partial
+import time
 from queue import Empty
 
-import time
 from kombu import BrokerConnection
 from kombu.exceptions import MessageStateError
 from kombu.simple import SimpleQueue
 
-from loadtest_env import S34ME_ACCESS_KEY_ID, S34ME_SECRET_ACCESS_KEY
-from s3_requests import http_download
+from s3_requests import boto_download
 
 
 def timing(f):
@@ -52,11 +50,8 @@ def listen():
 
             decoded_request = request.decode()
             message_index = decoded_request["i"]
-            download = partial(http_download, **{'service_base_url': 'rest.s3for.me',
-                                                 'access_key': S34ME_ACCESS_KEY_ID,
-                                                 'secret_key': S34ME_SECRET_ACCESS_KEY})
 
-            download_time = timing(download)
+            download_time = timing(boto_download)
             print(",QUEUE NUMBER,{},DOWNLOAD TIME,{}".format(message_index, download_time))
         except Empty:
             pass
